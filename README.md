@@ -13,7 +13,7 @@ erreichbar unter:
 
 ## Inhalt
 
-224 Karteikarten in 32 Themen, verteilt auf 5 Schwierigkeitsstufen:
+259 Karteikarten in 37 Themen, verteilt auf 6 Stufen:
 
 1. **Einsteiger** – Grundbegriffe, Variablen, Kontrollstrukturen, Funktionen, Arrays, Debugging
 2. **Fortgeschritten** – OOP, Datenstrukturen, Algorithmen/Big O, Rekursion, Git, Fehlerbehandlung
@@ -21,13 +21,17 @@ erreichbar unter:
 4. **Cloud & DevOps** – Netzwerke, Docker, CI/CD, AWS/Azure/GCP, Kubernetes, IaC, Security
 5. **Experte (KI)** – ML-Grundlagen, Neuronale Netze, LLMs/Transformer, Prompt Engineering/RAG,
    Embeddings, Agentic AI/MCP, MLOps
+6. **Glossar** – 35 reine Begriffsdefinitionen (Karte zeigt nur den Fachbegriff, z. B. "Array"), quer
+   über alle Themengebiete, zum schnellen Auffrischen von Vokabular
 
 ## Lernmethode
 
 Basierend auf aktueller Lernforschung:
 
-- **Multiple-Choice mit 4 Antwortoptionen** pro Karte (1 richtig, 3 Ablenker aus verwandten Karten) –
-  nutzt den Testing-Effekt, ohne auf dem Handy Freitext eintippen zu müssen
+- **Multiple-Choice mit 4 Antwortoptionen** pro Karte (1 richtig, 3 fest hinterlegte Ablenker aus
+  demselben Themengebiet) – nutzt den Testing-Effekt, ohne auf dem Handy Freitext eintippen zu müssen.
+  Die Ablenker sind bewusst thematisch ähnlich zur richtigen Antwort gewählt, nicht zufällig aus dem
+  gesamten Kartenstapel, damit die Auswahl echtes Verständnis statt Ausschlussverfahren erfordert.
 - **SM-2 Spaced Repetition** – die Bewertung ergibt sich automatisch aus richtig/falsch; Karten werden
   kurz vor dem vermuteten Vergessen erneut abgefragt
 - **Interleaving** – fällige Karten werden themenübergreifend gemischt statt blockweise gelernt
