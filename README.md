@@ -26,11 +26,13 @@ erreichbar unter:
 
 Basierend auf aktueller Lernforschung:
 
-- **SM-2 Spaced Repetition** – Karten werden kurz vor dem vermuteten Vergessen erneut abgefragt
-- **Active Recall** statt Multiple-Choice
+- **Multiple-Choice mit 4 Antwortoptionen** pro Karte (1 richtig, 3 Ablenker aus verwandten Karten) –
+  nutzt den Testing-Effekt, ohne auf dem Handy Freitext eintippen zu müssen
+- **SM-2 Spaced Repetition** – die Bewertung ergibt sich automatisch aus richtig/falsch; Karten werden
+  kurz vor dem vermuteten Vergessen erneut abgefragt
 - **Interleaving** – fällige Karten werden themenübergreifend gemischt statt blockweise gelernt
 - **Tageslimit für neue Karten** (einstellbar) gegen kognitive Überlastung
-- Sofortige Wiedervorlage bei "Nochmal" innerhalb derselben Session
+- Sofortige Wiedervorlage bei falscher Antwort innerhalb derselben Session
 
 ## Nutzung auf dem iPhone
 

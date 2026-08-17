@@ -391,7 +391,7 @@ const RAW_DECK = [
 ["Was beschreibt die Big-O-Notation?","Sie beschreibt das Wachstum von Laufzeit oder Speicherbedarf eines Algorithmus im Verhältnis zur Eingabegröße (Worst-Case)."],
 ["Was ist der Unterschied zwischen O(n) und O(n²)?","O(n) wächst linear mit der Eingabegröße, O(n²) quadratisch – bei großen Eingaben wird O(n²) deutlich langsamer."],
 ["Was ist O(log n) und wo tritt es typischerweise auf?","Logarithmisches Wachstum, typisch bei binärer Suche, da sich der Suchraum bei jedem Schritt halbiert."],
-["Wie unterscheiden sich Bubble Sort und Quick Sort in der Effizienz?","Bubble Sort hat O(n²) im Durchschnitt/Worst-Case, Quick Sort im Durchschnitt O(n log n) – deutlich effizienter bei großen Datenmengen."],
+["Wie unterscheiden sich Bubble Sort und Quick Sort in der Effizienz?","Bubble Sort hat O(n²) im Durchschnitt/Worst-Case, Quick Sort im Durchschnitt O(n log n) – deutlich effizienter bei großen Datenmengen (im ungünstigsten Fall aber ebenfalls O(n²))."],
 ["Was ist binäre Suche?","Ein Suchalgorithmus für sortierte Daten, der den Suchraum bei jedem Schritt halbiert (O(log n))."],
 ["Was bedeuten Worst Case, Best Case und Average Case?","Sie beschreiben die Laufzeit eines Algorithmus im schlechtesten, besten bzw. durchschnittlichen Szenario."],
 ["Was unterscheidet Zeitkomplexität von Raumkomplexität?","Zeitkomplexität misst die benötigte Rechenzeit, Raumkomplexität den benötigten Speicherplatz in Abhängigkeit von der Eingabegröße."],
@@ -478,7 +478,7 @@ const RAW_DECK = [
 ["Was ist Code Review?","Die systematische Prüfung von Code durch andere Entwickler vor dem Merge, um Qualität, Fehler und Wissenstransfer zu verbessern."],
 ]},
 {level:4, cat:"Web & Netzwerke", cards:[
-["Was unterscheidet HTTP von HTTPS?","HTTPS verschlüsselt die Kommunikation zwischen Client und Server mittels TLS/SSL, HTTP überträgt Daten unverschlüsselt."],
+["Was unterscheidet HTTP von HTTPS?","HTTPS verschlüsselt die Kommunikation zwischen Client und Server mittels TLS (dem Nachfolger des veralteten SSL), HTTP überträgt Daten unverschlüsselt."],
 ["Was macht DNS?","Domain Name System – übersetzt menschenlesbare Domainnamen (z. B. example.com) in IP-Adressen."],
 ["Was unterscheidet Frontend von Backend?","Das Frontend ist der Teil, mit dem der Nutzer direkt interagiert (UI); das Backend verarbeitet Logik, Daten und Serverkommunikation."],
 ["Was ist eine IP-Adresse?","Eine eindeutige numerische Adresse, die ein Gerät in einem Netzwerk identifiziert."],
@@ -641,32 +641,22 @@ function resetDailyNewCounterIfNeeded(){
   if(settings.newIntroDate !== t){ settings.newIntroDate = t; settings.newIntroCount = 0; saveSettings(settings); }
 }
 
-// SM-2 style scheduling. quality: 0=Nochmal,1=Schwer,2=Gut,3=Einfach
-function schedule(cardId, quality){
+// SM-2 style scheduling, driven by multiple-choice correctness.
+function schedule(cardId, correct){
   let st = state[cardId] || { ease: 2.5, interval: 0, reps: 0, due: Date.now() };
   const now = Date.now();
-  if(quality === 0){
+  if(!correct){
     st.reps = 0;
     st.interval = 1/48; // ~30 min relearn step, resurfaces same session via requeue too
     st.ease = Math.max(1.3, st.ease - 0.2);
-  } else if(quality === 1){
-    st.reps += 1;
-    st.interval = st.reps === 1 ? 1 : Math.max(1, st.interval * 1.2);
-    st.ease = Math.max(1.3, st.ease - 0.15);
-  } else if(quality === 2){
+  } else {
     st.reps += 1;
     if(st.reps === 1) st.interval = 1;
     else if(st.reps === 2) st.interval = 6;
     else st.interval = Math.round(st.interval * st.ease);
-  } else {
-    st.reps += 1;
-    if(st.reps === 1) st.interval = 3;
-    else if(st.reps === 2) st.interval = 7;
-    else st.interval = Math.round(st.interval * st.ease * 1.3);
-    st.ease = st.ease + 0.15;
   }
   st.due = now + st.interval * DAY;
-  st.lastQuality = quality;
+  st.lastCorrect = correct;
   state[cardId] = st;
   saveState(state);
   return st;
@@ -786,9 +776,8 @@ function selectOption(i){
     else if(idx === i) btn.classList.add('incorrect');
   });
 
-  const quality = correct ? 2 : 0; // Gut : Nochmal — drives SM-2 scheduling automatically
   const wasNew = isNew(card);
-  schedule(card.id, quality);
+  schedule(card.id, correct);
   if(wasNew){
     settings.newIntroCount += 1;
     saveSettings(settings);
