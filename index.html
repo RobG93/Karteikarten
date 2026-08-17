@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DevCards">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1220">
+<title>DevCards – Software Engineering Karteikarten</title>
+<style>
+  :root{
+    --bg:#f4f5f8; --bg-elevated:#ffffff; --text:#14161f; --text-dim:#5b5f70;
+    --border:#e2e4ec; --accent:#4f6df5; --accent-text:#ffffff;
+    --green:#1fa971; --amber:#d69a1f; --red:#e15252; --blue:#3a7bd5;
+    --card-bg:#ffffff; --shadow: 0 2px 10px rgba(20,22,31,0.06), 0 1px 2px rgba(20,22,31,0.04);
+    --radius:18px;
+    --lvl1:#1fa971; --lvl2:#3a7bd5; --lvl3:#8654d1; --lvl4:#d6821f; --lvl5:#e1526e;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1220; --bg-elevated:#181c2c; --text:#eef0f8; --text-dim:#9a9dbd;
+      --border:#2a2e45; --accent:#6f8bff; --accent-text:#0f1220;
+      --card-bg:#1c2036; --shadow: 0 4px 18px rgba(0,0,0,0.35);
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+    overscroll-behavior-y:none; -webkit-user-select:none; user-select:none;
+  }
+  button{font-family:inherit;}
+  .screen{display:none; min-height:100vh; flex-direction:column;}
+  .screen.active{display:flex;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; position:sticky; top:0; background:var(--bg);
+    z-index:5; border-bottom:1px solid transparent;
+  }
+  .topbar h1{font-size:19px; margin:0; font-weight:700;}
+  .iconbtn{
+    background:var(--bg-elevated); border:1px solid var(--border); color:var(--text);
+    width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-size:17px; cursor:pointer;
+  }
+  .content{flex:1; overflow-y:auto; padding:0 18px 100px;}
+  /* ---------- Dashboard ---------- */
+  .hero{
+    background:linear-gradient(135deg,var(--accent),#8b5cf6);
+    border-radius:22px; padding:22px; color:#fff; margin-bottom:18px;
+    box-shadow:var(--shadow);
+  }
+  .hero .big{font-size:38px; font-weight:800; line-height:1;}
+  .hero .label{font-size:13px; opacity:0.85; margin-top:4px;}
+  .hero-row{display:flex; justify-content:space-between; align-items:flex-end;}
+  .go-btn{
+    background:#fff; color:var(--accent); border:none; border-radius:14px;
+    padding:12px 20px; font-size:15px; font-weight:700; cursor:pointer; margin-top:16px; width:100%;
+  }
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px;}
+  .stat-card{
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:16px;
+    padding:12px; text-align:center;
+  }
+  .stat-card .num{font-size:20px; font-weight:800;}
+  .stat-card .lbl{font-size:11px; color:var(--text-dim); margin-top:2px;}
+  .section-title{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-dim); margin:22px 0 10px;}
+  .level-card{
+    display:flex; align-items:center; gap:14px; background:var(--bg-elevated);
+    border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:10px; cursor:pointer;
+  }
+  .level-dot{width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:16px; flex-shrink:0;}
+  .level-info{flex:1; min-width:0;}
+  .level-info .name{font-weight:700; font-size:15px;}
+  .level-info .sub{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .level-progress{width:100%; height:6px; background:var(--border); border-radius:4px; margin-top:8px; overflow:hidden;}
+  .level-progress > div{height:100%; border-radius:4px;}
+  .chev{color:var(--text-dim); font-size:18px;}
+  .footer-nav{
+    position:fixed; bottom:0; left:0; right:0; display:flex; background:var(--bg-elevated);
+    border-top:1px solid var(--border); padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+    z-index:10;
+  }
+  .nav-btn{flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:var(--text-dim); padding:6px; cursor:pointer; font-size:10px; font-weight:600;}
+  .nav-btn.active{color:var(--accent);}
+  .nav-btn .ic{font-size:20px;}
+  /* ---------- Study ---------- */
+  .study-topbar{display:flex; align-items:center; gap:12px; padding:14px 18px;}
+  .progress-bar{flex:1; height:8px; background:var(--border); border-radius:5px; overflow:hidden;}
+  .progress-bar > div{height:100%; background:var(--accent); border-radius:5px; transition:width .25s;}
+  .study-count{font-size:13px; color:var(--text-dim); font-weight:600; white-space:nowrap;}
+  .study-area{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 18px 18px; gap:16px;}
+  .card-wrap{width:100%; max-width:480px; perspective:1400px; flex:1; display:flex; align-items:stretch; min-height:0;}
+  .flashcard{
+    width:100%; position:relative; border-radius:24px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    background:var(--card-bg); border:1px solid var(--border); box-shadow:var(--shadow);
+    padding:28px 22px; min-height:280px;
+  }
+  .tag-row{position:absolute; top:16px; left:16px; right:16px; display:flex; justify-content:space-between; gap:8px;}
+  .pill{font-size:10px; font-weight:700; padding:4px 9px; border-radius:20px; color:#fff; text-transform:uppercase; letter-spacing:.03em;}
+  .cat-pill{background:var(--bg); color:var(--text-dim); border:1px solid var(--border); font-weight:600;}
+  .card-face-label{position:absolute; top:16px; right:16px; font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;}
+  .card-text{font-size:19px; font-weight:600; line-height:1.45; margin-top:14px; white-space:pre-wrap;}
+  .card-hint{position:absolute; bottom:16px; left:0; right:0; text-align:center; font-size:12px; color:var(--text-dim);}
+  .answer-divider{width:36px; height:4px; background:var(--border); border-radius:3px; margin:16px auto;}
+  .rate-row{display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; width:100%; max-width:480px;}
+  .rate-btn{
+    border:none; border-radius:14px; padding:13px 4px; color:#fff; font-weight:700; font-size:13px; cursor:pointer;
+    display:flex; flex-direction:column; gap:3px; align-items:center;
+  }
+  .rate-btn small{font-size:10px; opacity:.85; font-weight:600;}
+  .flip-btn{
+    width:100%; max-width:480px; padding:15px; border-radius:14px; border:none;
+    background:var(--accent); color:var(--accent-text); font-weight:700; font-size:15px; cursor:pointer;
+  }
+  .again{background:var(--red);} .hard{background:var(--amber);} .good{background:var(--green);} .easy{background:var(--blue);}
+  .session-end{display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:14px; text-align:center; padding:20px;}
+  .session-end .emoji{font-size:52px;}
+  .session-end h2{margin:0; font-size:22px;}
+  .session-end p{color:var(--text-dim); margin:0; font-size:14px; max-width:320px;}
+  .primary-btn{background:var(--accent); color:var(--accent-text); border:none; border-radius:14px; padding:13px 26px; font-weight:700; font-size:15px; cursor:pointer;}
+  .secondary-btn{background:var(--bg-elevated); color:var(--text); border:1px solid var(--border); border-radius:14px; padding:13px 26px; font-weight:700; font-size:15px; cursor:pointer;}
+  /* ---------- Browse ---------- */
+  .search-box{
+    width:100%; padding:12px 16px; border-radius:14px; border:1px solid var(--border);
+    background:var(--bg-elevated); color:var(--text); font-size:15px; margin-bottom:14px;
+  }
+  .chip-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:14px;}
+  .chip{
+    flex-shrink:0; padding:8px 14px; border-radius:20px; border:1px solid var(--border);
+    background:var(--bg-elevated); color:var(--text-dim); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;
+  }
+  .chip.active{background:var(--accent); color:var(--accent-text); border-color:var(--accent);}
+  .browse-item{background:var(--bg-elevated); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:8px;}
+  .browse-item .q{font-weight:700; font-size:14px; margin-bottom:6px;}
+  .browse-item .a{font-size:13px; color:var(--text-dim); line-height:1.4;}
+  .browse-item .meta{display:flex; gap:6px; margin-top:8px;}
+  /* ---------- Settings ---------- */
+  .setting-row{
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .setting-row .t{font-weight:600; font-size:14px;}
+  .setting-row .d{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .stepper{display:flex; align-items:center; gap:10px;}
+  .stepper button{width:32px; height:32px; border-radius:9px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:16px; font-weight:700; cursor:pointer;}
+  .stepper span{font-weight:700; min-width:20px; text-align:center;}
+  .danger-btn{width:100%; padding:13px; border-radius:14px; border:1px solid var(--red); background:transparent; color:var(--red); font-weight:700; font-size:14px; margin-top:6px; cursor:pointer;}
+  .toast{
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--text); color:var(--bg);
+    padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600; z-index:50; opacity:0; transition:opacity .2s;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+  .empty-state{display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; text-align:center; color:var(--text-dim); gap:8px;}
+  .empty-state .emoji{font-size:40px;}
+</style>
+</head>
+<body>
+
+<!-- ============ DASHBOARD ============ -->
+<div class="screen active" id="screen-dashboard">
+  <div class="topbar"><h1>DevCards</h1><button class="iconbtn" onclick="goSettings()">⚙︎</button></div>
+  <div class="content">
+    <div class="hero">
+      <div class="hero-row">
+        <div>
+          <div class="big" id="dueCount">0</div>
+          <div class="label">Karten heute fällig</div>
+        </div>
+        <div style="text-align:right">
+          <div class="big" id="streakCount">0🔥</div>
+          <div class="label">Tage-Streak</div>
+        </div>
+      </div>
+      <button class="go-btn" onclick="startSession('due')">Jetzt lernen</button>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" id="statLearned">0</div><div class="lbl">Gelernt</div></div>
+      <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">Karten gesamt</div></div>
+      <div class="stat-card"><div class="num" id="statNewToday">0</div><div class="lbl">Neu heute</div></div>
+    </div>
+    <div class="section-title">Lernpfad</div>
+    <div id="levelList"></div>
+  </div>
+  <div class="footer-nav">
+    <button class="nav-btn active" data-nav="dashboard" onclick="showScreen('dashboard')"><span class="ic">🏠</span>Start</button>
+    <button class="nav-btn" data-nav="browse" onclick="showScreen('browse')"><span class="ic">🔎</span>Durchsuchen</button>
+    <button class="nav-btn" data-nav="settings" onclick="showScreen('settings')"><span class="ic">⚙︎</span>Einstellungen</button>
+  </div>
+</div>
+
+<!-- ============ STUDY ============ -->
+<div class="screen" id="screen-study">
+  <div class="study-topbar">
+    <button class="iconbtn" onclick="exitSession()">✕</button>
+    <div class="progress-bar"><div id="studyProgressBar" style="width:0%"></div></div>
+    <div class="study-count" id="studyCount">0/0</div>
+  </div>
+  <div class="study-area" id="studyArea">
+    <div class="card-wrap">
+      <div class="flashcard" id="flashcard" onclick="flipCard()">
+        <div class="tag-row">
+          <span class="pill cat-pill" id="cardCat">–</span>
+          <span class="pill" id="cardLevelPill" style="background:var(--accent)">–</span>
+        </div>
+        <div>
+          <div id="cardFrontText" class="card-text"></div>
+          <div id="answerBlock" style="display:none">
+            <div class="answer-divider"></div>
+            <div id="cardBackText" class="card-text" style="font-weight:500; font-size:16.5px; color:var(--text-dim)"></div>
+          </div>
+        </div>
+        <div class="card-hint" id="cardHint">Tippen zum Umdrehen</div>
+      </div>
+    </div>
+    <button class="flip-btn" id="flipBtn" onclick="flipCard()">Antwort zeigen</button>
+    <div class="rate-row" id="rateRow" style="display:none">
+      <button class="rate-btn again" onclick="rate(0)">Nochmal<small id="ivAgain"></small></button>
+      <button class="rate-btn hard" onclick="rate(1)">Schwer<small id="ivHard"></small></button>
+      <button class="rate-btn good" onclick="rate(2)">Gut<small id="ivGood"></small></button>
+      <button class="rate-btn easy" onclick="rate(3)">Einfach<small id="ivEasy"></small></button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-sessionend">
+  <div class="session-end">
+    <div class="emoji">🎉</div>
+    <h2>Session geschafft!</h2>
+    <p id="sessionSummary"></p>
+    <button class="primary-btn" onclick="showScreen('dashboard')">Zum Start</button>
+  </div>
+</div>
+
+<!-- ============ BROWSE ============ -->
+<div class="screen" id="screen-browse">
+  <div class="topbar"><h1>Durchsuchen</h1><span></span></div>
+  <div class="content">
+    <input class="search-box" id="searchInput" placeholder="Suche nach Begriff…" oninput="renderBrowse()">
+    <div class="chip-row" id="levelChips"></div>
+    <div id="browseList"></div>
+  </div>
+  <div class="footer-nav">
+    <button class="nav-btn" data-nav="dashboard" onclick="showScreen('dashboard')"><span class="ic">🏠</span>Start</button>
+    <button class="nav-btn active" data-nav="browse" onclick="showScreen('browse')"><span class="ic">🔎</span>Durchsuchen</button>
+    <button class="nav-btn" data-nav="settings" onclick="showScreen('settings')"><span class="ic">⚙︎</span>Einstellungen</button>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div class="screen" id="screen-settings">
+  <div class="topbar"><h1>Einstellungen</h1><span></span></div>
+  <div class="content">
+    <div class="section-title">Lernumfang</div>
+    <div class="setting-row">
+      <div><div class="t">Neue Karten / Tag</div><div class="d">Begrenzung gegen Überlastung</div></div>
+      <div class="stepper">
+        <button onclick="changeSetting('newPerDay',-5)">−</button>
+        <span id="valNewPerDay">15</span>
+        <button onclick="changeSetting('newPerDay',5)">+</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div><div class="t">Max. Wiederholungen / Session</div><div class="d">0 = unbegrenzt</div></div>
+      <div class="stepper">
+        <button onclick="changeSetting('maxReviews',-10)">−</button>
+        <span id="valMaxReviews">60</span>
+        <button onclick="changeSetting('maxReviews',10)">+</button>
+      </div>
+    </div>
+    <div class="section-title">Über DevCards</div>
+    <div class="setting-row" style="display:block">
+      <div class="t">Lernmethode</div>
+      <div class="d" style="margin-top:6px; line-height:1.5;">
+        Diese App nutzt aktives Erinnern (Active Recall) und einen SM-2-basierten Spaced-Repetition-Algorithmus:
+        Karten werden kurz vor dem vermuteten Vergessen erneut abgefragt. Fällige Karten aus allen Themen werden
+        gemischt (Interleaving), da dies laut Lernforschung Transfer und Behalten deutlich verbessert.
+        Neue Karten sind pro Tag begrenzt, um kognitive Überlastung zu vermeiden.
+      </div>
+    </div>
+    <div class="setting-row" style="display:block">
+      <div class="t">iPhone: Als App nutzen</div>
+      <div class="d" style="margin-top:6px; line-height:1.5;">
+        Öffne diese Seite in Safari → Teilen-Symbol → „Zum Home-Bildschirm“. Danach startet DevCards wie eine
+        eigene App, offline nutzbar, mit deinem gesamten Fortschritt lokal auf dem Gerät gespeichert.
+      </div>
+    </div>
+    <div class="section-title">Daten</div>
+    <button class="danger-btn" onclick="resetProgress()">Gesamten Fortschritt zurücksetzen</button>
+  </div>
+  <div class="footer-nav">
+    <button class="nav-btn" data-nav="dashboard" onclick="showScreen('dashboard')"><span class="ic">🏠</span>Start</button>
+    <button class="nav-btn" data-nav="browse" onclick="showScreen('browse')"><span class="ic">🔎</span>Durchsuchen</button>
+    <button class="nav-btn active" data-nav="settings" onclick="showScreen('settings')"><span class="ic">⚙︎</span>Einstellungen</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   DATA: Levels + Deck (question/answer pairs per category)
+   ========================================================= */
+const LEVELS = [
+  {id:1, name:"Einsteiger",              color:"var(--lvl1)", desc:"Programmiergrundlagen"},
+  {id:2, name:"Fortgeschritten",         color:"var(--lvl2)", desc:"OOP, Datenstrukturen, Git"},
+  {id:3, name:"Professionell",           color:"var(--lvl3)", desc:"Clean Code, Testing, Datenbanken"},
+  {id:4, name:"Cloud & DevOps",          color:"var(--lvl4)", desc:"Docker, Kubernetes, Cloud, CI/CD"},
+  {id:5, name:"Experte: KI & Systeme",   color:"var(--lvl5)", desc:"LLMs, RAG, Agenten, MLOps"},
+];
+
+const RAW_DECK = [
+{level:1, cat:"Grundbegriffe", cards:[
+["Was ist ein Algorithmus?","Eine endliche, eindeutige Schritt-für-Schritt-Anleitung zur Lösung eines Problems oder einer Aufgabe."],
+["Was ist der Unterschied zwischen Compiler und Interpreter?","Ein Compiler übersetzt den gesamten Quellcode vor der Ausführung in Maschinencode; ein Interpreter führt den Code Zeile für Zeile zur Laufzeit aus."],
+["Was ist Quellcode?","Der von Menschen lesbare Programmtext, geschrieben in einer Programmiersprache."],
+["Was ist eine IDE?","Integrated Development Environment – eine Software, die Editor, Compiler/Interpreter, Debugger und weitere Werkzeuge in einer Oberfläche vereint (z. B. VS Code, PyCharm)."],
+["Was ist Pseudocode?","Eine informelle, sprachunabhängige Beschreibung eines Algorithmus, die die Logik ohne exakte Syntax einer Programmiersprache darstellt."],
+["Was bedeutet Syntax vs. Semantik im Programmieren?","Syntax sind die formalen Regeln, wie Code geschrieben werden muss; Semantik ist die Bedeutung bzw. das, was der Code tatsächlich bewirkt."],
+["Was ist ein Bug und was ist Debugging?","Ein Bug ist ein Fehler im Programm; Debugging ist der Prozess, diesen Fehler zu finden und zu beheben."],
+]},
+{level:1, cat:"Variablen & Datentypen", cards:[
+["Was ist eine Variable?","Ein benannter Speicherplatz, der einen Wert enthält und sich zur Laufzeit ändern kann."],
+["Nenne die grundlegenden primitiven Datentypen.","Integer (Ganzzahl), Float/Double (Kommazahl), Boolean (Wahrheitswert), String (Zeichenkette), Character."],
+["Was ist der Unterschied zwischen statischer und dynamischer Typisierung?","Bei statischer Typisierung wird der Datentyp zur Compile-Zeit festgelegt (z. B. Java); bei dynamischer Typisierung erst zur Laufzeit (z. B. Python)."],
+["Was ist Typumwandlung (Type Casting)?","Das explizite oder implizite Umwandeln eines Wertes von einem Datentyp in einen anderen, z. B. int nach float."],
+["Was ist eine Konstante?","Ein Wert, der nach der Zuweisung nicht mehr verändert werden kann (z. B. const oder final)."],
+["Was ist der Geltungsbereich (Scope) einer Variable?","Der Bereich im Code, in dem eine Variable sichtbar und nutzbar ist (z. B. lokal in einer Funktion oder global)."],
+["Was ist null bzw. None?","Ein spezieller Wert, der das Fehlen eines Objekts oder Wertes repräsentiert."],
+]},
+{level:1, cat:"Kontrollstrukturen", cards:[
+["Was ist eine if-else-Anweisung?","Eine Kontrollstruktur, die abhängig von einer booleschen Bedingung unterschiedliche Codeblöcke ausführt."],
+["Was ist der Unterschied zwischen for- und while-Schleife?","Eine for-Schleife wird meist für eine bekannte Anzahl an Wiederholungen genutzt, eine while-Schleife läuft, solange eine Bedingung wahr ist."],
+["Was ist eine Endlosschleife?","Eine Schleife, deren Abbruchbedingung nie erfüllt wird und die dadurch nie terminiert."],
+["Was bewirken break und continue?","break beendet die Schleife sofort; continue überspringt den Rest des Durchlaufs und springt zur nächsten Iteration."],
+["Was ist eine switch/case-Anweisung?","Eine Kontrollstruktur, die einen Wert mit mehreren möglichen Fällen vergleicht und den passenden Codeblock ausführt."],
+["Was ist eine verschachtelte Schleife?","Eine Schleife innerhalb einer anderen Schleife, z. B. zur Verarbeitung zweidimensionaler Daten."],
+["Was ist ein Ternäroperator?","Eine Kurzform für if-else in einem Ausdruck, z. B. x = a > b ? a : b."],
+]},
+{level:1, cat:"Funktionen", cards:[
+["Was ist eine Funktion?","Ein benannter, wiederverwendbarer Codeblock, der eine Aufgabe ausführt und optional Werte entgegennimmt und zurückgibt."],
+["Was ist der Unterschied zwischen Parameter und Argument?","Ein Parameter ist die Variable in der Funktionsdefinition; ein Argument ist der konkrete Wert beim Aufruf."],
+["Was ist ein Rückgabewert (Return Value)?","Der Wert, den eine Funktion an die aufrufende Stelle zurückgibt."],
+["Was ist eine Funktion mit Seiteneffekt (Side Effect)?","Eine Funktion, die neben ihrem Rückgabewert auch externen Zustand verändert, z. B. eine globale Variable oder eine Datei."],
+["Was ist eine anonyme Funktion / Lambda-Funktion?","Eine Funktion ohne eigenen Namen, oft für kurze, einmalig genutzte Logik, z. B. lambda x: x*2."],
+["Was bedeutet reine Funktion (Pure Function)?","Eine Funktion, die bei gleichen Eingaben immer die gleiche Ausgabe liefert und keine Seiteneffekte hat."],
+["Was ist Rekursion in einfachen Worten?","Wenn sich eine Funktion selbst aufruft, um ein Problem in kleinere Teilprobleme zu zerlegen."],
+]},
+{level:1, cat:"Arrays & Listen", cards:[
+["Was ist ein Array?","Eine Datenstruktur fester Größe, die Elemente gleichen Typs in nummerierter, zusammenhängender Reihenfolge speichert."],
+["Was ist der Unterschied zwischen Array und Liste?","Arrays haben meist feste Größe und liegen zusammenhängend im Speicher; Listen (z. B. Python list) sind dynamisch in der Größe."],
+["Wie beginnt die Indexierung in den meisten Sprachen?","Bei 0 (nullbasiert) – das erste Element hat den Index 0."],
+["Was ist ein zweidimensionales Array?","Ein Array von Arrays, das sich als Tabelle mit Zeilen und Spalten vorstellen lässt."],
+["Welche grundlegenden Operationen gibt es auf Listen?","Hinzufügen (append), Entfernen (remove), Zugriff per Index, Durchsuchen (search), Sortieren (sort)."],
+["Welche Zeitkomplexität hat der Zugriff auf ein Array-Element per Index?","O(1) – konstante Zeit, da die Speicheradresse direkt berechnet werden kann."],
+["Was ist ein 'Out of Bounds'-Fehler?","Ein Fehler, der auftritt, wenn auf einen Array-Index außerhalb der gültigen Grenzen zugegriffen wird."],
+]},
+{level:1, cat:"Debugging & Tools", cards:[
+["Was ist ein Breakpoint?","Eine markierte Stelle im Code, an der die Ausführung im Debugger angehalten wird, um den Zustand zu untersuchen."],
+["Was ist die Aufgabe eines Debuggers?","Ein Werkzeug, mit dem man Code schrittweise ausführen, Variablenwerte prüfen und Fehlerursachen finden kann."],
+["Was ist 'Rubber Duck Debugging'?","Eine Technik, bei der man sein Problem laut (z. B. einer Gummiente) erklärt, um durch die Erklärung selbst auf die Lösung zu kommen."],
+["Was unterscheidet Compile-Time-Error von Runtime-Error?","Ein Compile-Time-Error tritt beim Übersetzen auf (z. B. Syntaxfehler); ein Runtime-Error erst während der Ausführung (z. B. Division durch Null)."],
+["Was ist Logging und wofür wird es genutzt?","Das Aufzeichnen von Ereignissen und Zuständen eines Programms zur Laufzeit, um Fehler zu analysieren und Verhalten nachzuvollziehen."],
+["Was ist eine Stacktrace?","Eine Liste von Funktionsaufrufen, die zum Zeitpunkt eines Fehlers aktiv waren – hilfreich zur Fehlerlokalisierung."],
+["Was bedeutet 'print debugging'?","Fehler durch Einfügen von Ausgabebefehlen (z. B. print/console.log) im Code aufspüren."],
+]},
+{level:2, cat:"OOP Grundlagen", cards:[
+["Was ist eine Klasse?","Ein Bauplan/Template, der Attribute (Daten) und Methoden (Verhalten) für Objekte definiert."],
+["Was ist ein Objekt in der OOP?","Eine konkrete Instanz einer Klasse mit eigenem Zustand."],
+["Was ist Kapselung (Encapsulation)?","Das Bündeln von Daten und Methoden in einer Klasse sowie das Verstecken interner Details vor der Außenwelt."],
+["Was ist Vererbung (Inheritance)?","Ein Mechanismus, mit dem eine Subklasse Eigenschaften und Methoden einer Basisklasse übernimmt."],
+["Was ist Polymorphismus?","Die Fähigkeit, dass Objekte unterschiedlicher Klassen über dieselbe Schnittstelle unterschiedlich reagieren können, z. B. durch Methodenüberschreibung."],
+["Was ist eine Schnittstelle (Interface)?","Ein Vertrag, der festlegt, welche Methoden eine Klasse implementieren muss, ohne die Implementierung vorzugeben."],
+["Was unterscheidet abstrakte Klasse von Interface?","Eine abstrakte Klasse kann teilweise implementierte Methoden und Zustand enthalten, ein Interface definiert meist nur Methodensignaturen."],
+]},
+{level:2, cat:"Datenstrukturen", cards:[
+["Was ist ein Stack (Stapel)?","Eine LIFO-Datenstruktur (Last In, First Out) – das zuletzt hinzugefügte Element wird zuerst entfernt."],
+["Was ist eine Queue (Warteschlange)?","Eine FIFO-Datenstruktur (First In, First Out) – das zuerst hinzugefügte Element wird zuerst entfernt."],
+["Was ist eine verkettete Liste (Linked List)?","Eine Datenstruktur, bei der jedes Element (Knoten) einen Wert und einen Verweis auf das nächste Element enthält."],
+["Was ist eine HashMap / ein Dictionary?","Eine Datenstruktur, die Schlüssel-Wert-Paare speichert und Zugriff über den Schlüssel in durchschnittlich O(1) ermöglicht."],
+["Was ist ein Binärbaum?","Eine Baumstruktur, bei der jeder Knoten maximal zwei Kindknoten (links und rechts) hat."],
+["Was ist ein Graph in der Informatik?","Eine Struktur aus Knoten (Nodes) und Kanten (Edges), die Beziehungen zwischen Objekten darstellt."],
+["Wann nutzt man ein Set (Menge)?","Wenn man eine Sammlung eindeutiger Elemente ohne Duplikate benötigt, z. B. für schnelle Zugehörigkeitsprüfungen."],
+]},
+{level:2, cat:"Algorithmen & Big O", cards:[
+["Was beschreibt die Big-O-Notation?","Sie beschreibt das Wachstum von Laufzeit oder Speicherbedarf eines Algorithmus im Verhältnis zur Eingabegröße (Worst-Case)."],
+["Was ist der Unterschied zwischen O(n) und O(n²)?","O(n) wächst linear mit der Eingabegröße, O(n²) quadratisch – bei großen Eingaben wird O(n²) deutlich langsamer."],
+["Was ist O(log n) und wo tritt es typischerweise auf?","Logarithmisches Wachstum, typisch bei binärer Suche, da sich der Suchraum bei jedem Schritt halbiert."],
+["Wie unterscheiden sich Bubble Sort und Quick Sort in der Effizienz?","Bubble Sort hat O(n²) im Durchschnitt/Worst-Case, Quick Sort im Durchschnitt O(n log n) – deutlich effizienter bei großen Datenmengen."],
+["Was ist binäre Suche?","Ein Suchalgorithmus für sortierte Daten, der den Suchraum bei jedem Schritt halbiert (O(log n))."],
+["Was bedeuten Worst Case, Best Case und Average Case?","Sie beschreiben die Laufzeit eines Algorithmus im schlechtesten, besten bzw. durchschnittlichen Szenario."],
+["Was unterscheidet Zeitkomplexität von Raumkomplexität?","Zeitkomplexität misst die benötigte Rechenzeit, Raumkomplexität den benötigten Speicherplatz in Abhängigkeit von der Eingabegröße."],
+]},
+{level:2, cat:"Rekursion", cards:[
+["Welche zwei Bestandteile braucht jede rekursive Funktion?","Einen Basisfall (Abbruchbedingung) und einen rekursiven Fall, der das Problem verkleinert."],
+["Was passiert ohne Basisfall bei Rekursion?","Die Funktion ruft sich unendlich oft selbst auf, bis ein Stack Overflow auftritt."],
+["Was ist ein Stack Overflow im Kontext von Rekursion?","Ein Fehler, der auftritt, wenn zu viele verschachtelte Funktionsaufrufe den verfügbaren Aufrufstack-Speicher überschreiten."],
+["Was ist Tail-Recursion (Endrekursion)?","Eine rekursive Funktion, bei der der rekursive Aufruf die letzte Operation ist – manche Compiler optimieren dies in eine Schleife."],
+["Nenne ein klassisches rekursiv lösbares Problem.","Die Berechnung der Fakultät, Fibonacci-Zahlen oder das Durchlaufen von Baumstrukturen."],
+["Was unterscheidet Rekursion von Iteration?","Rekursion löst ein Problem durch Selbstaufruf der Funktion, Iteration durch Schleifen – beide lassen sich oft ineinander umwandeln."],
+["Was ist Memoization im Zusammenhang mit Rekursion?","Das Zwischenspeichern bereits berechneter Ergebnisse, um wiederholte, teure rekursive Berechnungen zu vermeiden."],
+]},
+{level:2, cat:"Git & Versionskontrolle", cards:[
+["Was ist ein Repository (Repo) in Git?","Ein Verzeichnis, das den gesamten Code sowie die komplette Versionshistorie eines Projekts verwaltet."],
+["Was unterscheidet git commit von git push?","git commit speichert Änderungen lokal in der Historie; git push überträgt diese Commits zu einem entfernten Repository."],
+["Was ist ein Branch (Zweig) in Git?","Eine unabhängige Entwicklungslinie, die paralleles Arbeiten an Features erlaubt, ohne den Hauptcode zu beeinflussen."],
+["Was ist ein Merge-Konflikt?","Ein Konflikt, der entsteht, wenn Git zwei sich widersprechende Änderungen an derselben Codezeile nicht automatisch zusammenführen kann."],
+["Was unterscheidet git merge von git rebase?","merge erstellt einen neuen Commit, der zwei Branches zusammenführt; rebase setzt Commits neu auf einen anderen Basis-Commit für eine lineare Historie."],
+["Was ist eine Pull Request (PR)?","Eine Anfrage, Änderungen aus einem Branch in einen anderen zu übernehmen, verbunden mit Code-Review vor dem Merge."],
+["Was macht git clone?","Erstellt eine lokale Kopie eines entfernten Repositorys inklusive der gesamten Historie."],
+]},
+{level:2, cat:"Fehlerbehandlung", cards:[
+["Was ist eine Exception (Ausnahme)?","Ein Ereignis, das während der Programmausführung auftritt und den normalen Ablauf unterbricht, meist durch einen Fehler."],
+["Wofür wird ein try-catch-Block verwendet?","Um Code auszuführen, der einen Fehler werfen könnte, und diesen kontrolliert abzufangen, statt das Programm abstürzen zu lassen."],
+["Was unterscheidet 'checked' von 'unchecked' Exceptions?","Checked Exceptions müssen explizit behandelt oder deklariert werden; unchecked Exceptions müssen das nicht."],
+["Was bewirkt ein finally-Block?","Der Code darin wird immer ausgeführt, unabhängig davon, ob eine Exception aufgetreten ist – z. B. zum Aufräumen von Ressourcen."],
+["Was bedeutet 'Fail Fast' als Prinzip der Fehlerbehandlung?","Ein Fehler soll so früh wie möglich erkannt und gemeldet werden, statt das Problem stillschweigend zu ignorieren."],
+["Was unterscheidet einen Fehler (Error) von einer Warnung?","Ein Fehler verhindert i. d. R. die korrekte Ausführung, eine Warnung weist auf ein Problem hin, ohne die Ausführung zu stoppen."],
+["Warum sollte man niemals leere catch-Blöcke verwenden?","Weil dadurch Fehler verschluckt werden und Probleme unbemerkt bleiben, was das Debugging massiv erschwert."],
+]},
+{level:3, cat:"Clean Code & SOLID", cards:[
+["Was bedeutet das 'S' in SOLID (Single Responsibility)?","Eine Klasse sollte nur einen Grund haben, sich zu ändern – also genau eine Verantwortlichkeit."],
+["Was bedeutet das 'O' in SOLID (Open/Closed)?","Software-Einheiten sollen offen für Erweiterungen, aber geschlossen für Änderungen sein."],
+["Was bedeutet das 'L' in SOLID (Liskov Substitution)?","Objekte einer Subklasse müssen sich anstelle von Objekten der Basisklasse verwenden lassen, ohne das Programmverhalten zu brechen."],
+["Was bedeutet das 'D' in SOLID (Dependency Inversion)?","Module sollen von Abstraktionen abhängen, nicht von konkreten Implementierungen."],
+["Was ist DRY?","'Don't Repeat Yourself' – Wissen bzw. Logik sollte im Code nur an einer Stelle definiert werden, um Redundanz zu vermeiden."],
+["Was ist KISS?","'Keep It Simple, Stupid' – Lösungen sollten so einfach wie möglich gehalten werden."],
+["Was ist ein Code-Smell?","Ein Muster im Code, das nicht zwingend ein Bug ist, aber auf tiefere strukturelle Probleme hindeutet, z. B. sehr lange Funktionen."],
+]},
+{level:3, cat:"Design Patterns", cards:[
+["Was macht das Singleton-Pattern?","Es stellt sicher, dass eine Klasse nur genau eine Instanz besitzt und bietet einen globalen Zugriffspunkt darauf."],
+["Was macht das Factory-Pattern?","Es kapselt die Objekterzeugung in einer separaten Methode/Klasse, statt Objekte direkt mit 'new' zu erstellen."],
+["Was macht das Observer-Pattern?","Ein Objekt (Subject) benachrichtigt automatisch mehrere abhängige Objekte (Observer) über Zustandsänderungen."],
+["Was macht das Strategy-Pattern?","Es kapselt austauschbare Algorithmen/Verhaltensweisen in eigenen Klassen, sodass sie zur Laufzeit ausgetauscht werden können."],
+["Was ist das MVC-Pattern?","Model-View-Controller trennt Daten (Model), Darstellung (View) und Steuerungslogik (Controller) einer Anwendung."],
+["Was macht das Decorator-Pattern?","Es fügt einem Objekt dynamisch zusätzliches Verhalten hinzu, ohne die ursprüngliche Klasse zu verändern."],
+["Warum sind Design Patterns nützlich?","Sie bieten bewährte, wiederverwendbare Lösungen für wiederkehrende Entwurfsprobleme und erleichtern die Teamkommunikation."],
+]},
+{level:3, cat:"Testing", cards:[
+["Was ist ein Unit-Test?","Ein Test, der eine einzelne, isolierte Einheit des Codes (z. B. eine Funktion) auf korrektes Verhalten prüft."],
+["Was unterscheidet Unit-Test von Integrationstest?","Unit-Tests prüfen isolierte Komponenten, Integrationstests das Zusammenspiel mehrerer Komponenten oder Systeme."],
+["Was bedeutet TDD (Test-Driven Development)?","Ein Ansatz, bei dem zuerst ein fehlschlagender Test geschrieben wird, dann die Implementierung, die den Test bestehen lässt."],
+["Was ist ein Mock in Tests?","Ein simuliertes Objekt, das das Verhalten einer echten Abhängigkeit nachahmt, um Tests isoliert und kontrollierbar zu machen."],
+["Was ist Testabdeckung (Code Coverage)?","Eine Metrik, die angibt, welcher Anteil des Codes durch automatisierte Tests ausgeführt wird."],
+["Was ist ein End-to-End-Test (E2E)?","Ein Test, der die gesamte Anwendung aus Nutzersicht prüft, von der Oberfläche bis zum Backend."],
+["Was ist das AAA-Muster in Tests?","Arrange (Vorbereiten), Act (Ausführen), Assert (Prüfen) – ein gängiges Strukturmuster für lesbare Tests."],
+]},
+{level:3, cat:"Datenbanken & SQL", cards:[
+["Was ist eine relationale Datenbank?","Eine Datenbank, die Daten in Tabellen mit festgelegtem Schema speichert und Beziehungen über Fremdschlüssel abbildet."],
+["Was ist ein Primärschlüssel (Primary Key)?","Ein Feld (oder Kombination), das jeden Datensatz einer Tabelle eindeutig identifiziert."],
+["Was macht ein JOIN in SQL?","Er verknüpft Zeilen aus zwei oder mehr Tabellen basierend auf einer verwandten Spalte, z. B. einem Fremdschlüssel."],
+["Was ist Normalisierung?","Der Prozess, Daten so zu strukturieren, dass Redundanz reduziert und Datenintegrität verbessert wird."],
+["Was ist ein Index in einer Datenbank?","Eine Datenstruktur, die Lesezugriffe beschleunigt, indem sie schnelle Suche ermöglicht, aber Schreibvorgänge leicht verlangsamt."],
+["Was unterscheidet SQL von NoSQL?","SQL-Datenbanken sind relational mit festem Schema (z. B. PostgreSQL); NoSQL-Datenbanken sind meist schemalos und für horizontale Skalierung ausgelegt (z. B. MongoDB)."],
+["Was bedeutet ACID bei Transaktionen?","Atomicity, Consistency, Isolation, Durability – Eigenschaften, die zuverlässige Datenbanktransaktionen garantieren."],
+]},
+{level:3, cat:"APIs & REST", cards:[
+["Was ist eine API?","Application Programming Interface – eine definierte Schnittstelle, über die Software-Komponenten miteinander kommunizieren können."],
+["Was bedeutet REST?","Representational State Transfer – ein Architekturstil für Web-APIs, basierend auf zustandslosen HTTP-Anfragen und Ressourcen."],
+["Was unterscheidet GET, POST, PUT und DELETE?","GET liest Daten, POST erstellt neue Daten, PUT aktualisiert/ersetzt Daten, DELETE löscht Daten."],
+["Was bedeutet 'zustandslos' (stateless) bei REST-APIs?","Jede Anfrage enthält alle nötigen Informationen; der Server speichert keinen Sitzungszustand zwischen Anfragen."],
+["Was ist JSON und warum wird es oft in APIs genutzt?","JavaScript Object Notation – ein leichtgewichtiges, textbasiertes Datenformat, einfach zu lesen und in vielen Sprachen zu verarbeiten."],
+["Was unterscheidet REST von GraphQL?","REST nutzt feste Endpunkte pro Ressource, GraphQL erlaubt es dem Client, genau die benötigten Daten in einer Anfrage abzufragen."],
+["Was bedeutet ein HTTP-Statuscode wie 404 oder 500?","404 bedeutet 'Nicht gefunden' (Ressource existiert nicht), 500 bedeutet 'Interner Serverfehler' (Fehler auf Serverseite)."],
+]},
+{level:3, cat:"Agile & Prozesse", cards:[
+["Was ist Scrum in einem Satz?","Ein agiles Framework, das Arbeit in kurze, feste Zeiträume (Sprints) unterteilt und regelmäßige Feedback-Zyklen nutzt."],
+["Was ist ein Sprint?","Ein fester, meist ein- bis vierwöchiger Zeitraum, in dem ein Scrum-Team an einem definierten Arbeitspaket arbeitet."],
+["Was ist ein Daily Standup?","Ein kurzes, tägliches Team-Meeting: was wurde gemacht, was kommt als Nächstes, wo gibt es Hindernisse."],
+["Was ist ein Backlog?","Eine priorisierte Liste aller Aufgaben, Features und Anforderungen, die noch umgesetzt werden sollen."],
+["Was unterscheidet Wasserfall- vom agilen Modell?","Wasserfall folgt starren, sequenziellen Phasen; agile Modelle arbeiten iterativ mit kurzen Zyklen und flexibler Anpassung."],
+["Was ist Continuous Integration (CI) prozessual betrachtet?","Die Praxis, Codeänderungen häufig in ein gemeinsames Repository zu integrieren und automatisch zu testen, um Probleme früh zu erkennen."],
+["Was ist Code Review?","Die systematische Prüfung von Code durch andere Entwickler vor dem Merge, um Qualität, Fehler und Wissenstransfer zu verbessern."],
+]},
+{level:4, cat:"Web & Netzwerke", cards:[
+["Was unterscheidet HTTP von HTTPS?","HTTPS verschlüsselt die Kommunikation zwischen Client und Server mittels TLS/SSL, HTTP überträgt Daten unverschlüsselt."],
+["Was macht DNS?","Domain Name System – übersetzt menschenlesbare Domainnamen (z. B. example.com) in IP-Adressen."],
+["Was unterscheidet Frontend von Backend?","Das Frontend ist der Teil, mit dem der Nutzer direkt interagiert (UI); das Backend verarbeitet Logik, Daten und Serverkommunikation."],
+["Was ist eine IP-Adresse?","Eine eindeutige numerische Adresse, die ein Gerät in einem Netzwerk identifiziert."],
+["Was ist ein Port in der Netzwerktechnik?","Eine Nummer, die einen bestimmten Dienst oder Prozess auf einem Server adressiert (z. B. Port 443 für HTTPS)."],
+["Was unterscheidet TCP von UDP?","TCP ist verbindungsorientiert und garantiert zuverlässige, geordnete Zustellung; UDP ist verbindungslos und schneller, aber ohne Zustellgarantie."],
+["Was ist ein CDN (Content Delivery Network)?","Ein Netzwerk verteilter Server, das Inhalte geografisch näher am Nutzer ausliefert, um Ladezeiten zu verkürzen."],
+]},
+{level:4, cat:"Container & Docker", cards:[
+["Was ist ein Container (z. B. Docker)?","Eine leichtgewichtige, isolierte Ausführungsumgebung, die eine Anwendung mit allen Abhängigkeiten bündelt, ohne eine komplette VM zu benötigen."],
+["Was unterscheidet einen Container von einer virtuellen Maschine?","Container teilen sich den Host-Kernel und sind leichtgewichtiger; VMs virtualisieren komplette Hardware inkl. eigenem Betriebssystem."],
+["Was ist ein Docker Image?","Eine unveränderliche Vorlage mit Anwendungscode und Abhängigkeiten, aus der Container gestartet werden."],
+["Was ist ein Dockerfile?","Eine Textdatei mit Anweisungen, wie ein Docker-Image schrittweise gebaut wird."],
+["Was ist Docker Compose?","Ein Werkzeug, um Multi-Container-Anwendungen über eine YAML-Datei zu definieren und gemeinsam zu starten."],
+["Was ist eine Container-Registry?","Ein Speicherort für Docker-Images, z. B. Docker Hub oder eine private Registry."],
+["Warum eignen sich Container gut für Cloud-Deployments?","Weil sie konsistente, portable Umgebungen schaffen ('läuft überall gleich') und sich leicht horizontal skalieren lassen."],
+]},
+{level:4, cat:"CI/CD", cards:[
+["Wofür steht CI/CD?","Continuous Integration / Continuous Delivery (oder Deployment) – automatisierte Prozesse zum Bauen, Testen und Ausliefern von Software."],
+["Was unterscheidet Continuous Delivery von Continuous Deployment?","Bei Delivery ist jede Änderung potenziell deploybar, das Deployment erfolgt aber manuell freigegeben; bei Deployment erfolgt es automatisch."],
+["Was ist eine Build-Pipeline?","Eine automatisierte Abfolge von Schritten (kompilieren, testen, paketieren, deployen), die bei jeder Codeänderung ausgeführt wird."],
+["Nenne Beispiele für CI/CD-Tools.","GitHub Actions, GitLab CI, Jenkins, CircleCI, Azure DevOps Pipelines."],
+["Was ist ein Deployment-Artefakt?","Das fertige, ausführbare Ergebnis eines Builds (z. B. ein Docker-Image), das deployed werden kann."],
+["Was ist eine Blue-Green-Deployment-Strategie?","Zwei identische Produktionsumgebungen, bei der neue Versionen in der inaktiven Umgebung getestet und dann per Umschaltung live geschaltet werden."],
+["Was ist ein Rollback?","Das Zurücksetzen einer Anwendung auf eine vorherige, stabile Version, meist nach einem fehlgeschlagenen Deployment."],
+]},
+{level:4, cat:"Cloud-Grundlagen", cards:[
+["Was sind die drei großen Cloud-Anbieter?","Amazon Web Services (AWS), Microsoft Azure und Google Cloud Platform (GCP)."],
+["Was bedeuten IaaS, PaaS und SaaS?","Infrastructure as a Service (rohe Rechenressourcen), Platform as a Service (Laufzeitumgebung ohne Infrastrukturmanagement), Software as a Service (fertige Anwendung)."],
+["Was ist der Vorteil von Cloud-Computing gegenüber eigener Hardware?","Elastische Skalierbarkeit, nutzungsbasierte Kosten (Pay-as-you-go) und kein Aufwand für eigene Rechenzentren."],
+["Was ist eine Virtual Machine (VM) in der Cloud?","Eine virtualisierte, isolierte Recheninstanz mit eigenem Betriebssystem, z. B. eine AWS EC2-Instanz."],
+["Was ist Serverless Computing?","Ein Modell, bei dem Entwickler nur Code bereitstellen (z. B. AWS Lambda) und der Anbieter Server, Skalierung und Betrieb übernimmt."],
+["Was ist Object Storage (z. B. AWS S3)?","Ein Speicherdienst für unstrukturierte Daten (Dateien/Objekte), hochskalierbar und über HTTP zugänglich."],
+["Was ist eine Region und eine Availability Zone in der Cloud?","Eine Region ist ein geografischer Standort; eine Availability Zone ist ein isoliertes Rechenzentrum innerhalb dieser Region für Ausfallsicherheit."],
+]},
+{level:4, cat:"Kubernetes", cards:[
+["Was ist Kubernetes in einem Satz?","Eine Open-Source-Plattform zur Automatisierung von Deployment, Skalierung und Verwaltung containerisierter Anwendungen."],
+["Was ist ein Pod in Kubernetes?","Die kleinste deploybare Einheit, die einen oder mehrere eng gekoppelte Container enthält."],
+["Was ist ein Deployment in Kubernetes?","Eine Ressource, die den gewünschten Zustand einer Anwendung beschreibt (z. B. Anzahl Replicas) und dessen Einhaltung automatisch sicherstellt."],
+["Was ist ein Service in Kubernetes?","Eine stabile Netzwerkadresse, über die Pods erreichbar sind, auch wenn sich einzelne Pods ändern oder neu starten."],
+["Was macht der Kubernetes-Scheduler?","Er entscheidet, auf welchem Node ein neuer Pod basierend auf Ressourcenverfügbarkeit ausgeführt wird."],
+["Was ist Auto-Scaling in Kubernetes?","Der Mechanismus, der automatisch die Anzahl laufender Pod-Replicas basierend auf Last anpasst."],
+["Was ist Helm im Kubernetes-Ökosystem?","Ein Paketmanager für Kubernetes, mit dem Anwendungen über wiederverwendbare 'Charts' konfiguriert und deployed werden."],
+]},
+{level:4, cat:"Infrastructure as Code", cards:[
+["Was bedeutet Infrastructure as Code (IaC)?","Infrastruktur wird über Code/Konfigurationsdateien definiert und verwaltet, statt manuell über eine UI."],
+["Was ist Terraform?","Ein IaC-Tool, mit dem sich Cloud-Infrastruktur anbieterübergreifend deklarativ definieren und verwalten lässt."],
+["Was unterscheidet deklarative von imperativer Infrastrukturverwaltung?","Deklarativ beschreibt den gewünschten Endzustand; imperativ beschreibt die konkreten Schritte dorthin."],
+["Was ist Idempotenz im Kontext von IaC?","Die Eigenschaft, dass eine Konfiguration mehrfach angewendet werden kann und immer zum gleichen Endzustand führt."],
+["Was ist Configuration Management (z. B. Ansible)?","Werkzeuge, die die Konfiguration von Servern automatisiert und konsistent verwalten, z. B. Softwareinstallation und Einstellungen."],
+["Warum ist IaC wichtig für reproduzierbare Umgebungen?","Weil Infrastruktur versioniert, nachvollziehbar und automatisiert wiederherstellbar wird, statt fehleranfällig manuell konfiguriert zu werden."],
+["Was ist ein State File in Terraform?","Eine Datei, die den aktuellen Zustand der verwalteten Infrastruktur speichert, um Änderungen korrekt zu planen und anzuwenden."],
+]},
+{level:4, cat:"Security & Skalierung", cards:[
+["Was ist SQL-Injection?","Ein Angriff, bei dem über nicht validierte Eingaben schädlicher SQL-Code in eine Datenbankabfrage eingeschleust wird."],
+["Was ist Cross-Site Scripting (XSS)?","Ein Angriff, bei dem schädlicher JavaScript-Code in eine Webseite eingeschleust wird und im Browser anderer Nutzer ausgeführt wird."],
+["Was unterscheidet Authentifizierung von Autorisierung?","Authentifizierung prüft, wer jemand ist (Identität); Autorisierung prüft, was diese Person tun darf (Berechtigungen)."],
+["Was ist ein Load Balancer?","Eine Komponente, die eingehenden Netzwerkverkehr auf mehrere Server verteilt, um Überlastung zu vermeiden und Verfügbarkeit zu erhöhen."],
+["Was unterscheidet horizontale von vertikaler Skalierung?","Horizontale Skalierung fügt mehr Instanzen hinzu; vertikale Skalierung erhöht die Ressourcen (CPU/RAM) einer einzelnen Instanz."],
+["Was besagt das Prinzip der geringsten Rechte?","Nutzer und Systeme sollten nur die minimal notwendigen Rechte erhalten, um ihre Aufgabe zu erfüllen."],
+["Was ist ein API-Rate-Limit?","Eine Begrenzung der Anzahl von Anfragen pro Zeiteinheit, um Missbrauch, Überlastung und DoS-Angriffe zu verhindern."],
+]},
+{level:5, cat:"ML-Grundlagen", cards:[
+["Was ist Machine Learning in einem Satz?","Ein Teilbereich der KI, bei dem Systeme aus Daten Muster lernen, um Vorhersagen oder Entscheidungen zu treffen, ohne explizit programmiert zu werden."],
+["Was unterscheidet überwachtes von unüberwachtem Lernen?","Beim überwachten Lernen wird mit gelabelten Daten trainiert; beim unüberwachten Lernen sucht das Modell selbstständig Muster in ungelabelten Daten."],
+["Was ist Overfitting?","Wenn ein Modell die Trainingsdaten inklusive Rauschen zu genau lernt und dadurch schlecht auf neue Daten generalisiert."],
+["Wozu dienen Trainings-, Validierungs- und Testdatensatz?","Trainingsdaten zum Lernen, Validierungsdaten zur Modellauswahl/Hyperparameter-Tuning, Testdaten zur finalen, unabhängigen Leistungsbewertung."],
+["Was ist Reinforcement Learning?","Ein Ansatz, bei dem ein Agent durch Belohnung und Bestrafung lernt, welche Aktionen in einer Umgebung optimale Ergebnisse liefern."],
+["Was ist eine Feature in einem ML-Kontext?","Eine einzelne messbare Eingabevariable/-eigenschaft, die einem Modell zur Vorhersage zur Verfügung steht."],
+["Was unterscheidet Klassifikation von Regression?","Klassifikation sagt diskrete Kategorien vorher (z. B. Spam/kein Spam), Regression sagt kontinuierliche Werte vorher (z. B. Hauspreis)."],
+]},
+{level:5, cat:"Neuronale Netze & Deep Learning", cards:[
+["Was ist ein künstliches neuronales Netz grob beschrieben?","Ein Modell aus Schichten miteinander verbundener 'Neuronen', die gewichtete Eingaben verarbeiten, inspiriert vom biologischen Gehirn."],
+["Was macht eine Aktivierungsfunktion (z. B. ReLU)?","Sie führt Nichtlinearität in ein neuronales Netz ein, wodurch es komplexe Muster über lineare Zusammenhänge hinaus lernen kann."],
+["Was ist Backpropagation?","Der Algorithmus, mit dem der Fehler eines neuronalen Netzes rückwärts durch die Schichten propagiert wird, um die Gewichte anzupassen."],
+["Was ist Gradient Descent?","Ein Optimierungsverfahren, das Modellparameter iterativ in Richtung des steilsten Abstiegs der Fehlerfunktion anpasst."],
+["Was unterscheidet CNN von RNN?","CNNs eignen sich besonders für räumliche Daten wie Bilder; RNNs für sequenzielle Daten wie Text oder Zeitreihen."],
+["Was ist Deep Learning?","Ein Teilbereich des Machine Learning, der neuronale Netze mit vielen (tiefen) Schichten nutzt, um komplexe Muster in großen Datenmengen zu lernen."],
+["Was ist eine Epoche (Epoch) beim Training?","Ein vollständiger Durchlauf des gesamten Trainingsdatensatzes durch das Modell während des Trainings."],
+]},
+{level:5, cat:"LLMs & Transformer", cards:[
+["Was ist ein Large Language Model (LLM)?","Ein sehr großes neuronales Sprachmodell, das auf riesigen Textmengen trainiert wurde, um Sprache zu verstehen und zu generieren."],
+["Was ist die Transformer-Architektur?","Eine neuronale Netzarchitektur, die auf dem Attention-Mechanismus basiert und Beziehungen zwischen allen Wörtern einer Sequenz parallel verarbeiten kann."],
+["Was macht der Attention-Mechanismus grob erklärt?","Er ermöglicht es einem Modell, beim Verarbeiten eines Wortes zu gewichten, wie relevant andere Wörter im Kontext dafür sind."],
+["Was ist ein Token in Bezug auf LLMs?","Eine Grundeinheit von Text (z. B. ein Wort oder Wortteil), in die Text zerlegt wird, bevor ein Sprachmodell ihn verarbeitet."],
+["Was bedeutet 'Kontextfenster' bei einem LLM?","Die maximale Anzahl an Tokens, die ein Modell gleichzeitig als Eingabe und bisherige Konversation berücksichtigen kann."],
+["Was unterscheidet Pretraining von Fine-Tuning bei LLMs?","Pretraining trainiert auf riesigen, allgemeinen Textmengen; Fine-Tuning passt ein trainiertes Modell gezielt auf eine spezifische Aufgabe an."],
+["Was ist Halluzination bei LLMs?","Wenn ein Sprachmodell selbstbewusst falsche oder erfundene Informationen als Fakten ausgibt."],
+]},
+{level:5, cat:"Prompt Engineering & RAG", cards:[
+["Was ist Prompt Engineering?","Die gezielte Gestaltung von Eingaben (Prompts) an ein Sprachmodell, um möglichst präzise und nützliche Ausgaben zu erhalten."],
+["Was ist Few-Shot-Prompting?","Eine Prompt-Technik, bei der dem Modell einige Beispiele für die gewünschte Aufgabe im Prompt selbst gegeben werden."],
+["Was ist Chain-of-Thought-Prompting?","Eine Technik, bei der das Modell angeleitet wird, seine Gedankengänge Schritt für Schritt darzulegen, um komplexere Aufgaben zuverlässiger zu lösen."],
+["Was bedeutet RAG (Retrieval-Augmented Generation)?","Ein Ansatz, bei dem ein Sprachmodell zusätzlich relevante Dokumente aus einer externen Wissensquelle abruft, statt nur auf trainiertem Wissen zu basieren."],
+["Warum wird RAG eingesetzt, statt das Modell neu zu trainieren?","RAG ist günstiger, hält Wissen aktuell und reduziert Halluzinationen, da das Modell auf verifizierte, aktuelle externe Daten zugreift."],
+["Was ist ein System-Prompt?","Eine übergeordnete Anweisung, die Verhalten, Rolle und Regeln eines KI-Modells für eine gesamte Konversation festlegt."],
+["Was ist 'Prompt Injection' als Sicherheitsrisiko?","Ein Angriff, bei dem schädliche Anweisungen in Eingabedaten versteckt werden, um das Verhalten eines KI-Modells zu manipulieren."],
+]},
+{level:5, cat:"Embeddings & Vektordatenbanken", cards:[
+["Was ist ein Embedding?","Eine numerische Vektor-Repräsentation von Text/Bildern, die semantische Bedeutung codiert – ähnliche Inhalte liegen im Vektorraum nahe beieinander."],
+["Wofür wird eine Vektordatenbank genutzt?","Zur effizienten Speicherung und Ähnlichkeitssuche großer Mengen von Embedding-Vektoren, z. B. für semantische Suche oder RAG-Systeme."],
+["Was ist Kosinus-Ähnlichkeit (Cosine Similarity)?","Ein Maß, das den Winkel zwischen zwei Vektoren misst, um deren semantische Ähnlichkeit unabhängig von der Länge zu bestimmen."],
+["Was unterscheidet semantische Suche von klassischer Stichwortsuche?","Semantische Suche findet inhaltlich ähnliche Ergebnisse basierend auf Bedeutung (Embeddings), klassische Suche sucht exakte Wortübereinstimmungen."],
+["Was ist 'Chunking' im Kontext von RAG-Systemen?","Das Aufteilen langer Dokumente in kleinere, handhabbare Textabschnitte, bevor sie eingebettet und gespeichert werden."],
+["Nenne Beispiele für Vektordatenbanken.","Pinecone, Weaviate, Chroma, Qdrant, Milvus."],
+["Was unterscheidet ein Embedding-Modell von einem generativen LLM?","Ein Embedding-Modell wandelt Text in Vektoren zur Ähnlichkeitssuche um, ein generatives LLM erzeugt neuen, zusammenhängenden Text als Antwort."],
+]},
+{level:5, cat:"Agentic AI & MCP", cards:[
+["Was ist ein KI-Agent im modernen Sinn?","Ein System, das ein LLM nutzt, um autonom Ziele zu verfolgen, dabei Werkzeuge (Tools) aufzurufen, Zwischenschritte zu planen und auf Ergebnisse zu reagieren."],
+["Was bedeutet 'Tool Use' bzw. 'Function Calling' bei LLMs?","Die Fähigkeit eines Sprachmodells, strukturierte Aufrufe an externe Funktionen/APIs zu generieren, um Aktionen auszuführen oder Daten abzurufen."],
+["Was ist das Model Context Protocol (MCP)?","Ein offener Standard, der definiert, wie KI-Anwendungen strukturiert auf externe Tools, Daten und Systeme zugreifen können, unabhängig vom Modell."],
+["Was unterscheidet einen einfachen Chatbot von einem agentischen System?","Ein Chatbot antwortet primär auf einzelne Nachrichten; ein agentisches System plant mehrstufig, nutzt Tools und trifft eigenständig Zwischenentscheidungen."],
+["Was ist 'Human in the Loop' bei KI-Agenten?","Ein Kontrollpunkt, an dem ein Mensch kritische oder risikoreiche Aktionen eines Agenten bestätigen muss, bevor sie ausgeführt werden."],
+["Warum ist Sandboxing bei autonomen KI-Agenten wichtig?","Um den Aktionsradius eines Agenten einzuschränken und unbeabsichtigte oder schädliche Auswirkungen auf reale Systeme zu verhindern."],
+["Was ist Multi-Agent-Orchestrierung?","Der koordinierte Einsatz mehrerer spezialisierter KI-Agenten, die zusammenarbeiten, um komplexe Aufgaben effizienter zu lösen als ein einzelner Agent."],
+]},
+{level:5, cat:"MLOps & Systemdesign", cards:[
+["Was ist MLOps?","Die Praxis, DevOps-Prinzipien (Automatisierung, CI/CD, Monitoring) auf den Lebenszyklus von Machine-Learning-Modellen anzuwenden."],
+["Was ist Model Drift?","Wenn sich die Leistung eines ML-Modells über Zeit verschlechtert, weil sich die realen Daten zunehmend von den Trainingsdaten unterscheiden."],
+["Was unterscheidet Monolith- von Microservices-Architektur?","Ein Monolith ist eine einzelne, eng gekoppelte Anwendung; Microservices teilen die Anwendung in unabhängig deploybare, lose gekoppelte Dienste auf."],
+["Was ist Observability in verteilten Systemen?","Die Fähigkeit, den internen Zustand eines Systems anhand von Logs, Metriken und Traces von außen nachvollziehen zu können."],
+["Was ist ein Message Broker (z. B. Kafka, RabbitMQ)?","Ein System, das asynchrone Kommunikation zwischen Diensten ermöglicht, indem Nachrichten zwischengespeichert und zuverlässig zugestellt werden."],
+["Was ist Model Versioning und warum ist es wichtig?","Das systematische Verwalten verschiedener Versionen trainierter Modelle, um Reproduzierbarkeit, Rollback und Vergleichbarkeit sicherzustellen."],
+["Was unterscheidet Batch-Inferenz von Echtzeit-Inferenz?","Batch-Inferenz verarbeitet große Datenmengen zeitversetzt in Stapeln; Echtzeit-Inferenz liefert Vorhersagen sofort bei Anfrage mit niedriger Latenz."],
+]},
+];
+
+// Flatten into CARDS[] with stable ids
+const CARDS = [];
+RAW_DECK.forEach((group, gi) => {
+  group.cards.forEach((c, ci) => {
+    CARDS.push({ id: `${group.level}-${gi}-${ci}`, level: group.level, cat: group.cat, front: c[0], back: c[1] });
+  });
+});
+
+/* =========================================================
+   STORAGE + SM-2 SPACED REPETITION ENGINE
+   ========================================================= */
+const STORE_KEY = "devcards_state_v1";
+const SETTINGS_KEY = "devcards_settings_v1";
+const DAY = 86400000;
+
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; }
+}
+function saveState(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
+function loadSettings(){
+  try{
+    return Object.assign({newPerDay:15, maxReviews:60, streak:0, lastStudyDate:null, newIntroDate:null, newIntroCount:0}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{});
+  }catch(e){ return {newPerDay:15, maxReviews:60, streak:0, lastStudyDate:null, newIntroDate:null, newIntroCount:0}; }
+}
+function saveSettings(s){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+
+let state = loadState();
+let settings = loadSettings();
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function resetDailyNewCounterIfNeeded(){
+  const t = todayStr();
+  if(settings.newIntroDate !== t){ settings.newIntroDate = t; settings.newIntroCount = 0; saveSettings(settings); }
+}
+
+// SM-2 style scheduling. quality: 0=Nochmal,1=Schwer,2=Gut,3=Einfach
+function schedule(cardId, quality){
+  let st = state[cardId] || { ease: 2.5, interval: 0, reps: 0, due: Date.now() };
+  const now = Date.now();
+  if(quality === 0){
+    st.reps = 0;
+    st.interval = 1/48; // ~30 min relearn step, resurfaces same session via requeue too
+    st.ease = Math.max(1.3, st.ease - 0.2);
+  } else if(quality === 1){
+    st.reps += 1;
+    st.interval = st.reps === 1 ? 1 : Math.max(1, st.interval * 1.2);
+    st.ease = Math.max(1.3, st.ease - 0.15);
+  } else if(quality === 2){
+    st.reps += 1;
+    if(st.reps === 1) st.interval = 1;
+    else if(st.reps === 2) st.interval = 6;
+    else st.interval = Math.round(st.interval * st.ease);
+  } else {
+    st.reps += 1;
+    if(st.reps === 1) st.interval = 3;
+    else if(st.reps === 2) st.interval = 7;
+    else st.interval = Math.round(st.interval * st.ease * 1.3);
+    st.ease = st.ease + 0.15;
+  }
+  st.due = now + st.interval * DAY;
+  st.lastQuality = quality;
+  state[cardId] = st;
+  saveState(state);
+  return st;
+}
+
+function previewIntervals(cardId){
+  const base = state[cardId] || { ease:2.5, interval:0, reps:0 };
+  function fmt(days){
+    if(days < 1) return Math.round(days*24*60) + " Min";
+    if(days < 30) return Math.round(days) + " Tg";
+    if(days < 365) return Math.round(days/30) + " Mo";
+    return Math.round(days/365) + " J";
+  }
+  const again = 1/48;
+  const hard = base.reps===0 ? 1 : Math.max(1, base.interval*1.2);
+  const good = base.reps===0 ? 1 : (base.reps===1 ? 6 : Math.round(base.interval*base.ease));
+  const easy = base.reps===0 ? 3 : (base.reps===1 ? 7 : Math.round(base.interval*base.ease*1.3));
+  return { again: fmt(again), hard: fmt(hard), good: fmt(good), easy: fmt(easy) };
+}
+
+function isDue(card){
+  const st = state[card.id];
+  return st && st.due <= Date.now();
+}
+function isNew(card){ return !state[card.id]; }
+function isLearned(card){ return !!state[card.id]; }
+
+/* =========================================================
+   SESSION BUILDING (interleaved, SM-2 driven, capped new/day)
+   ========================================================= */
+let session = { queue: [], index: 0, total: 0, mode: 'due', filterLevel: null };
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function buildQueue(mode, filterLevel){
+  resetDailyNewCounterIfNeeded();
+  let pool = CARDS;
+  if(filterLevel) pool = pool.filter(c => c.level === filterLevel);
+
+  if(mode === 'browseLevel'){
+    return shuffle(pool);
+  }
+
+  const due = shuffle(pool.filter(isDue));
+  const remainingNew = Math.max(0, settings.newPerDay - settings.newIntroCount);
+  let newCards = pool.filter(isNew).sort((a,b)=> a.level - b.level);
+  // shuffle within same level for topic interleaving among new cards
+  const byLevel = {};
+  newCards.forEach(c=>{ (byLevel[c.level] = byLevel[c.level]||[]).push(c); });
+  newCards = Object.keys(byLevel).sort((a,b)=>a-b).flatMap(l => shuffle(byLevel[l]));
+  newCards = newCards.slice(0, filterLevel ? newCards.length : remainingNew);
+
+  let queue = due.concat(newCards);
+  if(settings.maxReviews > 0) queue = queue.slice(0, settings.maxReviews);
+  return queue;
+}
+
+function startSession(mode, filterLevel){
+  session.mode = mode;
+  session.filterLevel = filterLevel || null;
+  session.queue = buildQueue(mode, filterLevel);
+  session.index = 0;
+  session.total = session.queue.length;
+  session.correctCount = 0;
+  session.newIntroducedThisSession = 0;
+
+  if(session.queue.length === 0){
+    showToast("Keine Karten fällig – super gemacht!");
+    return;
+  }
+  showScreen('study');
+  renderCard();
+}
+
+function currentCard(){ return session.queue[session.index]; }
+
+function renderCard(){
+  const card = currentCard();
+  if(!card){ finishSession(); return; }
+  document.getElementById('cardFrontText').textContent = card.front;
+  document.getElementById('cardBackText').textContent = card.back;
+  document.getElementById('cardCat').textContent = card.cat;
+  const lvl = LEVELS.find(l=>l.id===card.level);
+  const pill = document.getElementById('cardLevelPill');
+  pill.textContent = "Lvl " + card.level;
+  pill.style.background = lvl.color;
+  document.getElementById('answerBlock').style.display = 'none';
+  document.getElementById('cardHint').style.display = 'block';
+  document.getElementById('flipBtn').style.display = 'block';
+  document.getElementById('rateRow').style.display = 'none';
+  document.getElementById('studyCount').textContent = (session.index+1) + "/" + session.total;
+  document.getElementById('studyProgressBar').style.width = Math.round((session.index/session.total)*100) + "%";
+
+  const prev = previewIntervals(card.id);
+  document.getElementById('ivAgain').textContent = prev.again;
+  document.getElementById('ivHard').textContent = prev.hard;
+  document.getElementById('ivGood').textContent = prev.good;
+  document.getElementById('ivEasy').textContent = prev.easy;
+}
+
+function flipCard(){
+  const ab = document.getElementById('answerBlock');
+  if(ab.style.display === 'none'){
+    ab.style.display = 'block';
+    document.getElementById('cardHint').style.display = 'none';
+    document.getElementById('flipBtn').style.display = 'none';
+    document.getElementById('rateRow').style.display = 'grid';
+  }
+}
+
+function rate(quality){
+  const card = currentCard();
+  const wasNew = isNew(card);
+  schedule(card.id, quality);
+  if(wasNew){
+    settings.newIntroCount += 1;
+    saveSettings(settings);
+  }
+  bumpStreak();
+
+  if(quality === 0){
+    // requeue a few cards later in the same session for immediate re-practice
+    const reinsertAt = Math.min(session.queue.length, session.index + 4);
+    session.queue.splice(reinsertAt, 0, card);
+    session.total = session.queue.length;
+  }
+  session.index += 1;
+  renderCard();
+}
+
+function bumpStreak(){
+  const t = todayStr();
+  if(settings.lastStudyDate === t) return;
+  const yesterday = new Date(Date.now()-DAY).toISOString().slice(0,10);
+  settings.streak = (settings.lastStudyDate === yesterday) ? settings.streak + 1 : 1;
+  settings.lastStudyDate = t;
+  saveSettings(settings);
+}
+
+function finishSession(){
+  document.getElementById('sessionSummary').textContent =
+    session.total + " Karten wiederholt. Regelmäßiges, verteiltes Üben ist der stärkste Hebel für langfristiges Behalten – bis zur nächsten Session!";
+  showScreen('sessionend');
+}
+
+function exitSession(){
+  showScreen('dashboard');
+}
+
+/* =========================================================
+   NAVIGATION + DASHBOARD RENDER
+   ========================================================= */
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.nav===name));
+  if(name==='dashboard') renderDashboard();
+  if(name==='browse') renderBrowse();
+  if(name==='settings') renderSettings();
+}
+function goSettings(){ showScreen('settings'); }
+
+function renderDashboard(){
+  resetDailyNewCounterIfNeeded();
+  const dueNow = CARDS.filter(isDue).length;
+  document.getElementById('dueCount').textContent = dueNow;
+  document.getElementById('streakCount').textContent = settings.streak + "🔥";
+  document.getElementById('statLearned').textContent = CARDS.filter(isLearned).length;
+  document.getElementById('statTotal').textContent = CARDS.length;
+  document.getElementById('statNewToday').textContent = settings.newIntroCount + "/" + settings.newPerDay;
+
+  const list = document.getElementById('levelList');
+  list.innerHTML = '';
+  LEVELS.forEach(lvl=>{
+    const cards = CARDS.filter(c=>c.level===lvl.id);
+    const learned = cards.filter(isLearned).length;
+    const pct = Math.round((learned/cards.length)*100);
+    const due = cards.filter(isDue).length;
+    const div = document.createElement('div');
+    div.className = 'level-card';
+    div.onclick = () => startSession('due', lvl.id);
+    div.innerHTML = `
+      <div class="level-dot" style="background:${lvl.color}">${lvl.id}</div>
+      <div class="level-info">
+        <div class="name">${lvl.name}</div>
+        <div class="sub">${lvl.desc} · ${learned}/${cards.length} gelernt${due?` · ${due} fällig`:''}</div>
+        <div class="level-progress"><div style="width:${pct}%; background:${lvl.color}"></div></div>
+      </div>
+      <div class="chev">›</div>`;
+    list.appendChild(div);
+  });
+}
+
+/* =========================================================
+   BROWSE
+   ========================================================= */
+let browseLevelFilter = null;
+function renderBrowse(){
+  const chips = document.getElementById('levelChips');
+  chips.innerHTML = '<div class="chip' + (browseLevelFilter===null?' active':'') + '" onclick="setBrowseFilter(null)">Alle</div>' +
+    LEVELS.map(l => `<div class="chip${browseLevelFilter===l.id?' active':''}" onclick="setBrowseFilter(${l.id})">${l.name}</div>`).join('');
+
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  let items = CARDS;
+  if(browseLevelFilter) items = items.filter(c=>c.level===browseLevelFilter);
+  if(q) items = items.filter(c => c.front.toLowerCase().includes(q) || c.back.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q));
+
+  const list = document.getElementById('browseList');
+  if(items.length === 0){
+    list.innerHTML = '<div class="empty-state"><div class="emoji">🔍</div><div>Keine Karten gefunden</div></div>';
+    return;
+  }
+  list.innerHTML = items.slice(0,300).map(c=>{
+    const lvl = LEVELS.find(l=>l.id===c.level);
+    const learned = isLearned(c);
+    return `<div class="browse-item">
+      <div class="q">${escapeHtml(c.front)}</div>
+      <div class="a">${escapeHtml(c.back)}</div>
+      <div class="meta">
+        <span class="pill" style="background:${lvl.color}">Lvl ${c.level}</span>
+        <span class="pill cat-pill">${escapeHtml(c.cat)}</span>
+        ${learned?'<span class="pill" style="background:var(--green)">Gelernt</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function setBrowseFilter(lvl){ browseLevelFilter = lvl; renderBrowse(); }
+function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+function renderSettings(){
+  document.getElementById('valNewPerDay').textContent = settings.newPerDay;
+  document.getElementById('valMaxReviews').textContent = settings.maxReviews;
+}
+function changeSetting(key, delta){
+  settings[key] = Math.max(0, (settings[key]||0) + delta);
+  saveSettings(settings);
+  renderSettings();
+}
+function resetProgress(){
+  if(confirm("Wirklich den gesamten Lernfortschritt löschen? Das kann nicht rückgängig gemacht werden.")){
+    state = {};
+    saveState(state);
+    settings = Object.assign(settings, {streak:0, lastStudyDate:null, newIntroDate:null, newIntroCount:0});
+    saveSettings(settings);
+    showToast("Fortschritt zurückgesetzt");
+    renderDashboard();
+  }
+}
+
+/* =========================================================
+   MISC
+   ========================================================= */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// keyboard shortcuts (desktop testing convenience)
+document.addEventListener('keydown', (e)=>{
+  if(!document.getElementById('screen-study').classList.contains('active')) return;
+  if(document.getElementById('answerBlock').style.display === 'none'){
+    if(e.key === ' ' || e.key === 'Enter') flipCard();
+  } else {
+    if(e.key === '1') rate(0);
+    if(e.key === '2') rate(1);
+    if(e.key === '3') rate(2);
+    if(e.key === '4') rate(3);
+  }
+});
+
+renderDashboard();
+</script>
+</body>
+</html>
